@@ -107,12 +107,13 @@ function ExportToCSV(data, collection) {
         const values = [item.name];
         Object.keys(item.valuesByMode).forEach((key) => {
             let value = item.valuesByMode[key];
+            // check if value contains "", escape with "" ""
+            if (typeof value === 'string' && value.includes('"')) {
+                value = value.replace(/"/g, '""');
+            }
             // Check if value contains commas, and if so, encapsulate it within double quotes
             if (typeof value === 'string' && value.includes(',')) {
                 value = `"${value}"`;
-            }
-            if (typeof value === 'string' && value.includes('"')) {
-                value = value.replace(/"/g, '""');
             }
             values.push(value);
         });

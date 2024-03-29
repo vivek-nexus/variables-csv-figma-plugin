@@ -142,11 +142,12 @@
 
       for (let j = 1; j < headers.length; j++) {
         let value = values[j].trim(); // Remove leading and trailing whitespace
-        // If value is encapsulated within double quotes, strip the quotes
+
+        // Replace double quotes within the value with a single double quote
+        value = value.replace(/""/g, '"');
         if (value.startsWith('"') && value.endsWith('"')) {
+          // If value is encapsulated within double quotes, strip the quotes
           value = value.substring(1, value.length - 1);
-          // Replace double quotes within the value with a single double quote
-          value = value.replace(/""/g, '"');
         }
         item.valuesByMode[headers[j]] = value;
       }
