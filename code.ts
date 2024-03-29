@@ -58,7 +58,6 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
 
   if (msg.type === "import") {
     const importedVariablesObject: VariablesSchema[] = msg.importedCSV
-    console.log(msg)
     const importedVariableNames: string[] = []
     for (const item of importedVariablesObject)
       importedVariableNames.push(item.name)

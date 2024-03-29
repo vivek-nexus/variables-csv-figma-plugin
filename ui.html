@@ -1,6 +1,6 @@
 <body style="padding: 2rem;">
   <h2 style="margin-bottom: 0.5rem; text-align: center;">Variables ⇔ CSV</h2>
-  <p style="margin-top: 0px; text-align: center;">Export your variables to CSV to bulk edit variables values and sync
+  <p style="margin-top: 0px; text-align: center;">Export variables to CSV, bulk edit variables values and sync
     them back to Figma</p>
   <div style="display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;">
     <div>
@@ -58,14 +58,11 @@
   window.addEventListener("message", (event) => {
     if (event.data.pluginMessage.type === "get-collections") {
       const collections = event.data.pluginMessage.body
-      console.log(collections)
 
       PopulateDropdown(collections);
 
       document.querySelector("#dropdown").addEventListener("change", function (event) {
-        console.log(event)
         const selectedValue = this.value;
-        console.log('Selected option:', selectedValue);
         chosenCollection = selectedValue
       });
     }
