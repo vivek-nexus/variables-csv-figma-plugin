@@ -1,0 +1,183 @@
+<body style="padding: 2rem;">
+  <h2 style="margin-bottom: 0.5rem; text-align: center;">Variables ⇔ CSV</h2>
+  <p style="margin-top: 0px; text-align: center;">Export your variables to CSV to bulk edit variables values and sync
+    them back to Figma</p>
+  <div style="display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;">
+    <div>
+      <h4 style="margin-bottom: 0.5rem; text-align: center;">Do</h4>
+      <ul style="margin-top: 0px; padding-inline-start: 1.5rem;">
+        <li>Create variables only on Figma</li>
+        <li>Edit variables names only on Figma</li>
+        <li>Edit variable values preferably on the CSV</li>
+        <li>Delete the previously exported CSV after importing it back, or at least before exporting the next CSV</li>
+      </ul>
+    </div>
+    <div style="border-left: 1px solid grey;">
+      <h4 style="margin-bottom: 0.5rem; text-align: center;">Don't</h4>
+      <ul style="margin-top: 0px; padding-inline-start: 1.5rem;">
+        <li>Do not edit column headers on the CSV</li>
+        <li>Do not edit collection name/variable name on Figma, in the middle of
+          export/import cycle.
+        </li>
+        <li>Do not add/delete varaibles on Figma, in the middle of
+          export/import cycle.
+        </li>
+      </ul>
+    </div>
+  </div>
+  <p style="text-align: center;">Only string type variables can be exported and imported, for data sanity
+    reasons</p>
+  <hr />
+  <div style="display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap:1rem; margin-bottom: 2rem;">
+    <div>
+      <h3>Export to CSV</h3>
+      <div>
+        <label for="dropdown">Select collection to export</label>
+        <select id="dropdown">
+        </select>
+      </div>
+      <button id="export">Export collection to CSV</button>
+    </div>
+    <div>
+      <h3>Import from CSV</h3>
+      <div>
+        <input type="file" id="csvFileInput" accept=".csv">
+      </div>
+    </div>
+  </div>
+  <hr />
+  <p style="text-align: center;">Another project by <a href="https://vivek-nexus.github.io" target="_blank">Vivek</a>
+  </p>
+</body>
+
+
+<script>
+  let chosenCollection = ""
+  parent.postMessage({ pluginMessage: { type: "get-collections" } }, '*')
+
+  window.addEventListener("message", (event) => {
+    if (event.data.pluginMessage.type === "get-collections") {
+      const collections = event.data.pluginMessage.body
+      console.log(collections)
+
+      PopulateDropdown(collections);
+
+      document.querySelector("#dropdown").addEventListener("change", function (event) {
+        console.log(event)
+        const selectedValue = this.value;
+        console.log('Selected option:', selectedValue);
+        chosenCollection = selectedValue
+      });
+    }
+
+    if (event.data.pluginMessage.type === "export") {
+      const collection = event.data.pluginMessage.body.collection
+      const csvData = event.data.pluginMessage.body.csvData
+      DownloadCSV(csvData, collection)
+    }
+  })
+
+  document.querySelector("#export").addEventListener("click", () => {
+    parent.postMessage({ pluginMessage: { type: "export", collection: chosenCollection } }, '*')
+  })
+
+  // Add event listener to file input
+  document.querySelector("#csvFileInput").addEventListener("change", (event) => {
+    ImportDataFromCSV(event).then((importedData) => {
+      parent.postMessage({ pluginMessage: { type: "import", collection: importedData.collection, importedCSV: importedData.importedCSV } }, '*')
+    })
+  });
+
+  function DownloadCSV(csvData, filename) {
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      // Browsers that support HTML5 download attribute
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+  // Function to handle file upload and return parsed CSV data
+  function ImportDataFromCSV(event, collection) {
+    const input = event.target;
+    const file = input.files?.[0];
+
+    if (file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function () {
+          const csvData = reader.result;
+          const importedData = parseCSV(csvData);
+          resolve(importedData);
+        };
+        reader.onerror = function (error) {
+          reject(error);
+        };
+        reader.readAsText(file);
+      });
+    }
+    return null;
+  }
+
+
+  // Function to parse CSV data and convert it to the object type
+  function parseCSV(csvData) {
+    const lines = csvData.split('\n');
+    if (typeof (lines) === undefined)
+      return []
+    const headers = lines[0].split(',');
+    const collection = headers[0]
+    const result = [];
+
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+      const item = {
+        name: values[0],
+        valuesByMode: {}
+      };
+
+      for (let j = 1; j < headers.length; j++) {
+        item.valuesByMode[headers[j]] = values[j];
+      }
+
+      // push only if the variable name exists
+      if (item.name)
+        result.push(item);
+    }
+    console.log(result)
+
+    return {
+      importedCSV: result,
+      collection: collection
+    };
+  }
+
+  // Function to populate the dropdown with options
+  function PopulateDropdown(collections) {
+    const dropdown = document.getElementById("dropdown");
+
+    // Clear existing options
+    dropdown.innerHTML = '';
+
+    // Add options from the array
+    collections.forEach((item) => {
+      const option = document.createElement("option");
+      option.text = item;
+      option.value = item;
+      dropdown.appendChild(option);
+    });
+
+    chosenCollection = dropdown.value
+  }
+
+
+
+</script>
