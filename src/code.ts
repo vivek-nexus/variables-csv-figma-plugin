@@ -7,7 +7,7 @@ type VariablesSchema = {
   }
 }
 
-figma.showUI(__html__, { height: 550, width: 600 })
+figma.showUI(__html__, { height: 580, width: 600 })
 
 figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: string }) => {
   if (msg.type === "get-collections") {
@@ -61,8 +61,8 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
   }
 
   if (msg.type === "import") {
-    console.log(msg.importedCSV)
     const parsedCSV: any[][] = parse(msg.importedCSV, { typed: true })
+    // check if the CSV is empty 001
     if (parsedCSV.length === 0) {
       figma.notify("That's a blank CSV file! No pranks please -_-", { error: true, timeout: 5000 })
       return
@@ -93,7 +93,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
 
     const modesIdsOnFigma: string[] = []
 
-    // check if CSV is empty 001
+    // check if CSV is empty 002
     if (importedVariableNames.length === 0) {
       figma.notify("No variables found in the CSV", { error: true, timeout: 5000 })
       return
@@ -108,37 +108,31 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
             modesIdsOnFigma.push(mode.modeId)
         }
       }
-      // check if collection exists on Figma 002
+      // check if collection exists on Figma 003
       if (collectionId === "") {
-        figma.notify("Variable collection in the CSV does not match any collection on this Figma file", { error: true, timeout: 5000 })
+        figma.notify("Variable collection in the CSV does not match any collection", { error: true, timeout: 5000 })
         return
       }
-      // check if modes match with Figma 003
-
-      if (JSON.stringify(importedModeIds) !== JSON.stringify(modesIdsOnFigma)) {
-        figma.notify("Columns in the CSV do not match the modes in the corresponding collection on this Figma file", { error: true, timeout: 5000 })
+      // check if required modes are available 004
+      if (!CheckSubset(importedModeIds, modesIdsOnFigma)) {
+        figma.notify("One or more columns in the CSV do not match or are missing", { error: true, timeout: 5000 })
         return
       }
 
 
       figma.variables.getLocalVariablesAsync().then((variables) => {
         const variableNamesOnFigma: string[] = []
-        // check if any Figma variables are missing in the CSV
+        // check if any Figma variables are missing in the CSV 005
         for (const variable of variables) {
           if (variable.resolvedType === "COLOR")
             continue
           if (variable.variableCollectionId === collectionId) {
             variableNamesOnFigma.push(variable.name)
             if (importedVariableNames.indexOf(variable.name) === -1) {
-              figma.notify("One or more variables in the corresponding collection on this Figma file, are missing in the CSV", { error: true, timeout: 5000 })
+              figma.notify("One or more variables in the corresponding collection, are missing in the CSV", { error: true, timeout: 5000 })
               return
             }
           }
-        }
-        // check if variable counts in the collection match with that on Figma 004
-        if (variableNamesOnFigma.length !== importedVariableNames.length) {
-          figma.notify("Variable count in the CSV does not match the count in the corresponding collection on this Figma file", { error: true, timeout: 5000 })
-          return
         }
 
         // update variables if no issues found
@@ -166,7 +160,6 @@ function ExportToCSV(exportVariablesObject: VariablesSchema[], collection: strin
   }
 
   const csv = [headers, ...rows]
-  console.log(csv)
   console.log(stringify(csv))
 
   return (stringify(csv))
@@ -190,5 +183,11 @@ function UpdateVariables(importedVariablesObject: VariablesSchema[], collection:
       }
     }
     figma.notify(`Successfully updated variable values of ${collection} from CSV`)
+  })
+}
+
+function CheckSubset(parentArray: string[], subsetArray: string[]) {
+  return subsetArray.every((el) => {
+    return parentArray.includes(el)
   })
 }
