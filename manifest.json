@@ -2,7 +2,7 @@
   "name": "Variables ⇔ CSV",
   "id": "1355357264377995556",
   "api": "1.0.0",
-  "main": "code.js",
+  "main": "dist/code.js",
   "capabilities": [],
   "enableProposedApi": false,
   "editorType": [

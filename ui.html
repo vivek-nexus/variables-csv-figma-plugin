@@ -80,8 +80,13 @@
 
   // Add event listener to file input
   document.querySelector("#csvFileInput").addEventListener("change", (event) => {
-    ImportDataFromCSV(event).then((importedData) => {
-      parent.postMessage({ pluginMessage: { type: "import", collection: importedData.collection, importedCSV: importedData.importedCSV } }, '*')
+    ReadCSV(event).then((importedCSV) => {
+      parent.postMessage({
+        pluginMessage: {
+          type: "import",
+          importedCSV: importedCSV
+        }
+      }, '*')
     })
   });
 
@@ -101,7 +106,7 @@
   }
 
   // Function to handle file upload and return parsed CSV data
-  function ImportDataFromCSV(event, collection) {
+  function ReadCSV(event, collection) {
     const input = event.target
     const file = input.files?.[0]
 
@@ -110,8 +115,7 @@
         const reader = new FileReader()
         reader.onload = function () {
           const csvData = reader.result
-          const importedData = parseCSV(csvData)
-          resolve(importedData)
+          resolve(csvData)
         }
         reader.onerror = function (error) {
           reject(error)
@@ -120,48 +124,6 @@
       })
     }
     return null
-  }
-
-
-  // Function to parse CSV data and convert it to the object type
-  function parseCSV(csvData) {
-    const lines = csvData.split('\n')
-    if (typeof (lines) === undefined)
-      return []
-    const headers = lines[0].split(',')
-    const collection = headers[0]
-    const result = []
-
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',')
-      const item = {
-        name: values[0].trim(),
-        valuesByMode: {}
-      };
-
-      for (let j = 1; j < headers.length; j++) {
-        let value = values[j].trim(); // Remove leading and trailing whitespace
-
-        // Replace double quotes within the value with a single double quote
-        value = value.replace(/""/g, '"');
-        if (value.startsWith('"') && value.endsWith('"')) {
-          // If value is encapsulated within double quotes, strip the quotes
-          value = value.substring(1, value.length - 1);
-        }
-        item.valuesByMode[headers[j]] = value;
-      }
-
-      // push only if the variable name exists
-      if (item.name)
-        result.push(item)
-    }
-    console.log(result)
-
-    return {
-      importedCSV: result,
-      collection: collection
-    };
   }
 
   // Function to populate the dropdown with options

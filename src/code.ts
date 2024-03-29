@@ -1,3 +1,5 @@
+import { parse, stringify } from '@vanillaes/csv'
+
 type VariablesSchema = {
   name: string
   valuesByMode: {
@@ -7,7 +9,7 @@ type VariablesSchema = {
 
 figma.showUI(__html__, { height: 600, width: 700 })
 
-figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: VariablesSchema[] }) => {
+figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: string }) => {
   if (msg.type === "get-collections") {
     figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
       const collections = []
@@ -57,10 +59,31 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
   }
 
   if (msg.type === "import") {
-    const importedVariablesObject: VariablesSchema[] = msg.importedCSV
+    console.log(msg.importedCSV)
+    const parsedCSV: string[][] = parse(msg.importedCSV)
+    console.log(parsedCSV)
+    const headers = parsedCSV[0]
+    const collection = headers[0]
+    const importedModeIds: string[] = headers.slice(1)
+    const importedVariablesObject: VariablesSchema[] = []
     const importedVariableNames: string[] = []
-    for (const item of importedVariablesObject)
-      importedVariableNames.push(item.name)
+
+    // sanitise and populate import variables
+    for (let i = 1; i < parsedCSV.length; i++) {
+      importedVariableNames.push(parsedCSV[i][0])
+
+      const valuesByMode: { [modeId: string]: any } = {}
+      for (let j = 0; j < importedModeIds.length; j++) {
+        valuesByMode[importedModeIds[j]] = parsedCSV[i][j + 1]
+      }
+      importedVariablesObject.push({
+        name: parsedCSV[i][0],
+        valuesByMode: valuesByMode
+      })
+    }
+
+    console.log(importedVariablesObject)
+
     const modesIdsOnFigma: string[] = []
 
     // check if CSV is empty 001
@@ -71,10 +94,10 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
 
     figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
       let collectionId = ""
-      for (const collection of localCollections) {
-        if (collection.name === msg.collection) {
-          collectionId = collection.id
-          for (const mode of collection.modes)
+      for (const localCollection of localCollections) {
+        if (localCollection.name === collection) {
+          collectionId = localCollection.id
+          for (const mode of localCollection.modes)
             modesIdsOnFigma.push(mode.modeId)
         }
       }
@@ -84,7 +107,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
         return
       }
       // check if modes match with Figma 003
-      const importedModeIds = Object.keys(importedVariablesObject[0]?.valuesByMode)
+
       if (JSON.stringify(importedModeIds) !== JSON.stringify(modesIdsOnFigma)) {
         figma.notify("Columns in the CSV do not match the modes in the corresponding collection on this Figma file", { error: true, timeout: 5000 })
         return
@@ -110,7 +133,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
         }
 
         // update variables if no issues found
-        UpdateVariables(importedVariablesObject, msg.collection, collectionId, modesIdsOnFigma)
+        UpdateVariables(importedVariablesObject, collection, collectionId, modesIdsOnFigma)
 
       })
     })
@@ -119,37 +142,30 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
   // figma.closePlugin();
 }
 
-function ExportToCSV(data: VariablesSchema[], collection: string): string {
+function ExportToCSV(exportVariablesObject: VariablesSchema[], collection: string): string {
   // Create headers
-  const headers = [collection, ...Object.keys(data[0].valuesByMode)];
+  const headers = [collection, ...Object.keys(exportVariablesObject[0].valuesByMode)];
+  const rows = []
 
   // Create rows
-  const rows = data.map((item) => {
-    const values = [item.name]
-    Object.keys(item.valuesByMode).forEach((key) => {
-      let value = item.valuesByMode[key]
-      // check if value contains "", escape with "" ""
-      if (typeof value === 'string' && value.includes('"')) {
-        value = value.replace(/"/g, '""');
-      }
-      // Check if value contains commas, and if so, encapsulate it within double quotes
-      if (typeof value === 'string' && value.includes(',')) {
-        value = `"${value}"`
-      }
-      values.push(value)
-    })
-    return values.join(',')
-  })
+  for (const item of exportVariablesObject) {
+    const row = []
+    row.push(item.name)
+    for (const modeId in item.valuesByMode)
+      row.push(item.valuesByMode[modeId])
+    rows.push(row)
+  }
 
-  // Combine headers and rows
-  const csv = [headers.join(','), ...rows].join('\n')
+  const csv = [headers, ...rows]
+  console.log(csv)
+  console.log(stringify(csv))
 
-  return csv
+  return (stringify(csv))
 }
 
 function UpdateVariables(importedVariablesObject: VariablesSchema[], collection: string, collectionId: string, modesIdsOnFigma: string[]) {
   figma.notify("Updating variable values...")
-  figma.variables.getLocalVariablesAsync().then((variables) => {
+  figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
     // begin updating variables
     for (const variable of variables) {
       if (variable.variableCollectionId === collectionId) {
