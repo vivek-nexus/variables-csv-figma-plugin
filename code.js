@@ -106,7 +106,12 @@ function ExportToCSV(data, collection) {
     const rows = data.map((item) => {
         const values = [item.name];
         Object.keys(item.valuesByMode).forEach((key) => {
-            values.push(item.valuesByMode[key]);
+            let value = item.valuesByMode[key];
+            // Check if value contains commas, and if so, encapsulate it within double quotes
+            if (typeof value === 'string' && value.includes(',')) {
+                value = `"${value}"`;
+            }
+            values.push(value);
         });
         return values.join(',');
     });

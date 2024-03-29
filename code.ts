@@ -1,11 +1,11 @@
 type VariablesSchema = {
   name: string
   valuesByMode: {
-    [modeId: string]: any;
+    [modeId: string]: any
   }
 }
 
-figma.showUI(__html__, { height: 600, width: 700 });
+figma.showUI(__html__, { height: 600, width: 700 })
 
 figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: VariablesSchema[] }) => {
   if (msg.type === "get-collections") {
@@ -117,7 +117,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: Vari
   }
 
   // figma.closePlugin();
-};
+}
 
 function ExportToCSV(data: VariablesSchema[], collection: string): string {
   // Create headers
@@ -125,17 +125,22 @@ function ExportToCSV(data: VariablesSchema[], collection: string): string {
 
   // Create rows
   const rows = data.map((item) => {
-    const values = [item.name];
+    const values = [item.name]
     Object.keys(item.valuesByMode).forEach((key) => {
-      values.push(item.valuesByMode[key]);
-    });
-    return values.join(',');
-  });
+      let value = item.valuesByMode[key]
+      // Check if value contains commas, and if so, encapsulate it within double quotes
+      if (typeof value === 'string' && value.includes(',')) {
+        value = `"${value}"`
+      }
+      values.push(value)
+    })
+    return values.join(',')
+  })
 
   // Combine headers and rows
-  const csv = [headers.join(','), ...rows].join('\n');
+  const csv = [headers.join(','), ...rows].join('\n')
 
-  return csv;
+  return csv
 }
 
 function UpdateVariables(importedVariablesObject: VariablesSchema[], collection: string, collectionId: string, modesIdsOnFigma: string[]) {

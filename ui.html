@@ -59,10 +59,10 @@
     if (event.data.pluginMessage.type === "get-collections") {
       const collections = event.data.pluginMessage.body
 
-      PopulateDropdown(collections);
+      PopulateDropdown(collections)
 
       document.querySelector("#dropdown").addEventListener("change", function (event) {
-        const selectedValue = this.value;
+        const selectedValue = this.value
         chosenCollection = selectedValue
       });
     }
@@ -86,68 +86,72 @@
   });
 
   function DownloadCSV(csvData, filename) {
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' })
 
-    const link = document.createElement('a');
+    const link = document.createElement('a')
     if (link.download !== undefined) {
-      // Browsers that support HTML5 download attribute
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
   // Function to handle file upload and return parsed CSV data
   function ImportDataFromCSV(event, collection) {
-    const input = event.target;
-    const file = input.files?.[0];
+    const input = event.target
+    const file = input.files?.[0]
 
     if (file) {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onload = function () {
-          const csvData = reader.result;
-          const importedData = parseCSV(csvData);
-          resolve(importedData);
-        };
+          const csvData = reader.result
+          const importedData = parseCSV(csvData)
+          resolve(importedData)
+        }
         reader.onerror = function (error) {
-          reject(error);
-        };
-        reader.readAsText(file);
-      });
+          reject(error)
+        }
+        reader.readAsText(file)
+      })
     }
-    return null;
+    return null
   }
 
 
   // Function to parse CSV data and convert it to the object type
   function parseCSV(csvData) {
-    const lines = csvData.split('\n');
+    const lines = csvData.split('\n')
     if (typeof (lines) === undefined)
       return []
-    const headers = lines[0].split(',');
+    const headers = lines[0].split(',')
     const collection = headers[0]
-    const result = [];
+    const result = []
 
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',');
+      const values = lines[i].split(',')
       const item = {
         name: values[0],
         valuesByMode: {}
       };
 
       for (let j = 1; j < headers.length; j++) {
-        item.valuesByMode[headers[j]] = values[j];
+        let value = values[j].trim(); // Remove leading and trailing whitespace
+        // If value is encapsulated within double quotes, strip the quotes
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.substring(1, value.length - 1);
+        }
+        item.valuesByMode[headers[j]] = value;
       }
 
       // push only if the variable name exists
       if (item.name)
-        result.push(item);
+        result.push(item)
     }
     console.log(result)
 
