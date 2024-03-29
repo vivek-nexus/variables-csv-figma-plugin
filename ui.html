@@ -136,7 +136,7 @@
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',')
       const item = {
-        name: values[0],
+        name: values[0].trim(),
         valuesByMode: {}
       };
 
@@ -145,6 +145,8 @@
         // If value is encapsulated within double quotes, strip the quotes
         if (value.startsWith('"') && value.endsWith('"')) {
           value = value.substring(1, value.length - 1);
+          // Replace double quotes within the value with a single double quote
+          value = value.replace(/""/g, '"');
         }
         item.valuesByMode[headers[j]] = value;
       }

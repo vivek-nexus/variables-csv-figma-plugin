@@ -111,6 +111,9 @@ function ExportToCSV(data, collection) {
             if (typeof value === 'string' && value.includes(',')) {
                 value = `"${value}"`;
             }
+            if (typeof value === 'string' && value.includes('"')) {
+                value = value.replace(/"/g, '""');
+            }
             values.push(value);
         });
         return values.join(',');
