@@ -10,45 +10,48 @@
         <li>Create variables only on Figma</li>
         <li>Edit variables names only on Figma</li>
         <li>Edit variable values preferably on the CSV</li>
-        <li>Delete/overwrite the previously exported CSV after importing it back, or at least before exporting the next
-          CSV</li>
+        <li>Export a fresh CSV at the beginning of each export/import cycle</li>
+        <li>Treat Figma as the source of truth for variables</li>
       </ul>
     </div>
     <div style="border-left: 2px solid rgb(210, 210, 210); color: red; font-size: 0.9rem;">
       <h4 style="margin-bottom: 0.5rem; text-align: center;">Don't</h4>
       <ul style="margin-top: 0px; padding-inline-start: 1.5rem;">
         <li>Do not edit column headers on the CSV</li>
-        <li>Do not edit collection name/variable name on Figma, add/delete varaibles on Figma, in the middle of
+        <li>Do not edit collection name/variable name on Figma, in the middle of
           export/import cycle.
         </li>
-        <li>Do not provide string values to number or boolean type variables in the CSV.
+        <li>Do not add/delete varaibles on Figma, in the middle of
+          export/import cycle.
+        </li>
         </li>
       </ul>
     </div>
   </div>
-  <p style="text-align: center; color: slategray; font-size: 0.9rem;">Color variables cannot be exported and imported,
+  <p style="text-align: center; color: slategray; font-size: 0.9rem;">Only string variables can be exported and
+    imported,
     for data sanity
     reasons</p>
   <hr />
   <div style="display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap:1rem;">
     <div>
-      <h3>Export to CSV</h3>
+      <h3>Export collection to CSV</h3>
       <!-- <label for="dropdown">Select collection to export</label> -->
       <div style="margin-top: 0.5rem;">
         <select id="dropdown" style="font-family: Inter;">
         </select>
-        <button id="export" style="font-family: Inter;">Export collection</button>
+        <button id="export" style="font-family: Inter;">Export</button>
       </div>
     </div>
     <div>
-      <h3>Import from CSV</h3>
-      <div style="margin-bottom: 3rem;">
+      <h3>Import collection from CSV</h3>
+      <div style="margin-bottom: 1.75rem;">
         <input type="file" id="csvFileInput" accept=".csv" style="font-family: Inter;">
       </div>
     </div>
   </div>
   <p style="color: slategray; font-size: 0.75rem; text-align: center;">Another project by <a
-      href="https://vivek-nexus.github.io" target="_blank">Vivek</a>
+      href="https://www.figma.com/@vivek_nexus" target="_blank">Vivek</a>
   </p>
 
 </body>

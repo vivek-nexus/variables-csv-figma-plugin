@@ -7,7 +7,7 @@ type VariablesSchema = {
   }
 }
 
-figma.showUI(__html__, { height: 580, width: 600 })
+figma.showUI(__html__, { height: 550, width: 600 })
 
 figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: string }) => {
   if (msg.type === "get-collections") {
@@ -35,12 +35,10 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
       }
 
       // populate and respond with the variables of the requested collection
-      figma.variables.getLocalVariablesAsync().then((variables) => {
+      figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
         const exportVariablesObject: VariablesSchema[] = []
 
         for (const variable of variables) {
-          if (variable.resolvedType === "COLOR")
-            continue
           if (variable.variableCollectionId === collectionId) {
             exportVariablesObject.push({
               name: variable.name,
@@ -61,7 +59,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
   }
 
   if (msg.type === "import") {
-    const parsedCSV: any[][] = parse(msg.importedCSV, { typed: true })
+    const parsedCSV: any[][] = parse(msg.importedCSV)
     // check if the CSV is empty 001
     if (parsedCSV.length === 0) {
       figma.notify("That's a blank CSV file! No pranks please -_-", { error: true, timeout: 5000 })
@@ -120,12 +118,11 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
       }
 
 
-      figma.variables.getLocalVariablesAsync().then((variables) => {
+      figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
         const variableNamesOnFigma: string[] = []
         // check if any Figma variables are missing in the CSV 005
         for (const variable of variables) {
-          if (variable.resolvedType === "COLOR")
-            continue
+
           if (variable.variableCollectionId === collectionId) {
             variableNamesOnFigma.push(variable.name)
             if (importedVariableNames.indexOf(variable.name) === -1) {
@@ -166,23 +163,27 @@ function ExportToCSV(exportVariablesObject: VariablesSchema[], collection: strin
 }
 
 function UpdateVariables(importedVariablesObject: VariablesSchema[], collection: string, collectionId: string, modesIdsOnFigma: string[]) {
-  figma.notify("Updating variable values...")
-  figma.variables.getLocalVariablesAsync().then((variables) => {
+  figma.notify("Updating variable values, hold on...")
+  figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
     // begin updating variables
     for (const variable of variables) {
-      if (variable.resolvedType === "COLOR")
-        continue
       if (variable.variableCollectionId === collectionId) {
         for (const importedVariable of importedVariablesObject) {
           if (importedVariable.name === variable.name) {
             for (const modeId of modesIdsOnFigma) {
-              variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
+              try {
+                variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
+              } catch (error) {
+                figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
+                figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
+                return
+              }
             }
           }
         }
       }
     }
-    figma.notify(`Successfully updated variable values of ${collection} from CSV`)
+    figma.notify(`Successfully updated variable values of ${collection} from the CSV`)
   })
 }
 
