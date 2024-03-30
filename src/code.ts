@@ -7,7 +7,7 @@ type VariablesSchema = {
   }
 }
 
-figma.showUI(__html__, { height: 550, width: 600 })
+figma.showUI(__html__, { height: 600, width: 600 })
 
 figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: string }) => {
   if (msg.type === "get-collections") {
@@ -59,7 +59,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
   }
 
   if (msg.type === "import") {
-    const parsedCSV: any[][] = parse(msg.importedCSV)
+    const parsedCSV: string[][] = parse(msg.importedCSV)
     // check if the CSV is empty 001
     if (parsedCSV.length === 0) {
       figma.notify("That's a blank CSV file! No pranks please -_-", { error: true, timeout: 5000 })
