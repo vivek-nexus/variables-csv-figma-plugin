@@ -108,7 +108,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
       }
       // check if collection exists on Figma 003
       if (collectionId === "") {
-        figma.notify("Variable collection in the CSV does not match any collection", { error: true, timeout: 5000 })
+        figma.notify("First column header in the CSV does not match any collection on Figma", { error: true, timeout: 5000 })
         return
       }
       // check if required modes are available 004
@@ -126,7 +126,7 @@ figma.ui.onmessage = (msg: { type: string, collection: string, importedCSV: stri
           if (variable.variableCollectionId === collectionId) {
             variableNamesOnFigma.push(variable.name)
             if (importedVariableNames.indexOf(variable.name) === -1) {
-              figma.notify("One or more variables in the corresponding collection, are missing in the CSV", { error: true, timeout: 5000 })
+              figma.notify("One or more variables in the Figma collection, are missing in the CSV", { error: true, timeout: 5000 })
               return
             }
           }
