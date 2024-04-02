@@ -73,7 +73,8 @@
   <p style="text-align: center; color: slategray; font-size: 0.75rem;">Only string variables can be exported and
     imported,
     for data sanity
-    reasons</p>
+    reasons
+  </p>
   <div style="display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1rem;">
     <div class="do">
       <h4 style="margin-bottom: 0.5rem; text-align: center;">Do ✅</h4>
@@ -116,6 +117,7 @@
   parent.postMessage({ pluginMessage: { type: "get-collections" } }, '*')
 
   window.addEventListener("message", (event) => {
+    // consume collections
     if (event.data.pluginMessage.type === "get-collections") {
       const collections = event.data.pluginMessage.body
 
@@ -127,15 +129,17 @@
       });
     }
 
+    // consume CSV to export
     if (event.data.pluginMessage.type === "export") {
-      const collection = event.data.pluginMessage.body.collection
+      const filename = event.data.pluginMessage.body.collectionName
       const csvData = event.data.pluginMessage.body.csvData
-      DownloadCSV(csvData, collection)
+      DownloadCSV(csvData, filename)
     }
   })
 
+  // request data to export
   document.querySelector("#export").addEventListener("click", () => {
-    parent.postMessage({ pluginMessage: { type: "export", collection: chosenCollection } }, '*')
+    parent.postMessage({ pluginMessage: { type: "export", collectionName: chosenCollection } }, '*')
   })
 
   // Add event listener to file input

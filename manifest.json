@@ -1,5 +1,5 @@
 {
-  "name": "Variables ⇔ CSV",
+  "name": "Variables ⇔ CSV (Export+Import)",
   "id": "1355357264377995556",
   "api": "1.0.0",
   "main": "dist/code.js",

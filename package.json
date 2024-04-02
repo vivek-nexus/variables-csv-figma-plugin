@@ -1,5 +1,5 @@
 {
-  "name": "variables-csv",
+  "name": "variables-csv-export-import",
   "version": "1.0.0",
   "description": "Your Figma Plugin",
   "main": "dist/code.js",
