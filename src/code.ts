@@ -3,11 +3,11 @@ import { parse, stringify } from '@vanillaes/csv'
 type ImportedVariablesSchema = {
   name: string
   valuesByMode: {
-    [modeId: string]: any
+    [modeId: string]: string
   }
 }
 
-type VariablesCommonBufferSchema = string[][]
+type String2dArray = string[][]
 
 figma.showUI(__html__, { height: 600, width: 600 })
 
@@ -46,7 +46,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
       figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
         // prepare and export variable object
         const headers = [collectionName, ...modeNames]
-        const exportVariablesObject: VariablesCommonBufferSchema = []
+        const exportVariablesObject: String2dArray = []
         exportVariablesObject.push(headers)
 
         for (const variable of variables) {
@@ -73,7 +73,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
   }
 
   if (msg.type === "import") {
-    const parsedCSV: VariablesCommonBufferSchema = parse(msg.importedCSV)
+    const parsedCSV: String2dArray = parse(msg.importedCSV)
     // check if the CSV is empty 001
     if (parsedCSV.length === 0) {
       figma.notify("That's a blank CSV file! No pranks please -_-", { error: true, timeout: 5000 })
