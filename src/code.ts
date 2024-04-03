@@ -111,12 +111,12 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
       // map importedModes with modesOnFigma
       for (const importedModeName of importedModeNames) {
+        let importedModeId = "UndefinedModeId"
         for (const modeOnFigma of modesOnFigma) {
           if (modeOnFigma.name === importedModeName)
-            importedModeIds.push(modeOnFigma.modeId)
-          else
-            importedModeIds.push("UndefinedModeId")
+            importedModeId = modeOnFigma.modeId
         }
+        importedModeIds.push(importedModeId)
       }
 
       // sanitise and populate import variables
@@ -182,8 +182,10 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
               try {
                 variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
               } catch (error) {
+                console.error(error)
                 figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
                 figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
+                figma.notify(`${error}`, { error: true, timeout: 5000 })
                 return
               }
             }
