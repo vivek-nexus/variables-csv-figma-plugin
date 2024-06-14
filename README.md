@@ -4,6 +4,8 @@
 - Import updated CSV back to Figma
 - Multiple variable modes supported
 
+https://www.figma.com/community/plugin/1355357264377995556
+
 ![image](https://github.com/vivek-nexus/variables-csv-figma-plugin/assets/26523871/d42ee075-da17-464f-a200-b3ea018381d0)
 
 ---
