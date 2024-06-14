@@ -20,3 +20,7 @@ https://www.figma.com/community/plugin/1355357264377995556
 
 > Only string variables are supported for CSV sanity
 
+---
+
+CSV parser credits https://github.com/vanillaes/csv
+
