@@ -32,7 +32,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
       const modeIds: string[] = []
       const modeNames: string[] = []
 
-      // extract collection id and modeIds
+      // Extract collection id and modeIds
       for (const collection of localCollections) {
         if (collection.name === collectionName) {
           collectionId = collection.id
@@ -44,7 +44,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
       }
 
       figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
-        // prepare and export variable object
+        // Prepare and export variable object
         const headers = [collectionName, ...modeNames]
         const exportVariablesObject: String2dArray = []
         exportVariablesObject.push(headers)
@@ -74,11 +74,19 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
   if (msg.type === "import") {
     const parsedCSV: String2dArray = parse(msg.importedCSV)
-    // check if the CSV is empty 001
+
+    // HARD CHECK: Check if the CSV is empty
     if (parsedCSV.length === 0) {
       figma.notify("That's a blank CSV file! No pranks please -_-", { error: true, timeout: 5000 })
       return
     }
+
+    // HARD CHECK: Check if there is at least one variable row, apart from the header row
+    if (parsedCSV.length <= 1) {
+      figma.notify("No variables found in the CSV", { error: true, timeout: 5000 })
+      return
+    }
+
     console.log(parsedCSV)
     const headers = parsedCSV[0]
     const collectionName = headers[0]
@@ -86,9 +94,10 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
     const importedModeIds: string[] = []
     const importedVariablesObject: ImportedVariablesSchema[] = []
     const importedVariableNames: string[] = []
+    const variableNamesOnFigma: string[] = []
 
 
-    figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
+    figma.variables.getLocalVariableCollectionsAsync().then(async (localCollections) => {
       const modesOnFigma: { modeId: string; name: string; }[] = []
       const modesIdsOnFigma: string[] = []
 
@@ -103,13 +112,13 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
         }
       }
 
-      // check if collection exists on Figma 002
+      // HARD CHECK: Check if collection exists on Figma
       if (collectionId === "") {
         figma.notify("First column header in the CSV does not match any collection on Figma", { error: true, timeout: 5000 })
         return
       }
 
-      // map importedModes with modesOnFigma
+      // Map importedModes with modesOnFigma
       for (const importedModeName of importedModeNames) {
         let importedModeId = "UndefinedModeId"
         for (const modeOnFigma of modesOnFigma) {
@@ -119,7 +128,44 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
         importedModeIds.push(importedModeId)
       }
 
-      // sanitise and populate import variables
+      // SOFT CHECK: Check if required modes are available
+      // Prompt if some modes are missing 
+      // User wants to continue: Update only modes that are present  
+      // User wants to stop: Abort import
+      const missingModeIdsCount = CountMissingElements(importedModeIds, modesIdsOnFigma)
+      if (missingModeIdsCount > 0) {
+        // Show notification and wait for action
+        try {
+          await new Promise<void>((resolve, reject) => {
+            figma.notify(`${missingModeIdsCount} modes on Figma are missing in the CSV`, {
+              error: false,
+              timeout: Infinity,
+              onDequeue: (reason) => {
+                if (reason === "action_button_click") {
+                  resolve()
+                } else {
+                  reject(new Error("Notification dismissed without a confirmation to continue"))
+                }
+              },
+              button: {
+                text: "Continue import",
+                action: () => {
+                  resolve()
+                }
+              }
+            })
+          })
+        }
+        catch (error) {
+          // Abort import
+          console.log(error)
+          figma.notify("Import aborted")
+          return
+        }
+      }
+      // Continue if no issues found or if user is okay with bypassing modes soft check
+
+      // Sanitise and populate import variables object
       for (let i = 1; i < parsedCSV.length; i++) {
         importedVariableNames.push(parsedCSV[i][0])
 
@@ -135,34 +181,52 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
       console.log(importedVariablesObject)
 
-      // check if there are any variables 003
-      if (importedVariableNames.length === 0) {
-        figma.notify("No variables found in the CSV", { error: true, timeout: 5000 })
-        return
-      }
-
-      // check if required modes are available 004 and 004_more_columns (should pass)
-      if (!CheckSubset(importedModeIds, modesIdsOnFigma)) {
-        figma.notify("One or more columns in the CSV do not match or are missing", { error: true, timeout: 5000 })
-        return
-      }
-
-      figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
-        const variableNamesOnFigma: string[] = []
-        // check if any Figma variables are missing in the CSV 005
+      // SOFT CHECK: Check if required variables are available
+      // Prompt if some variables are missing 
+      // User wants to continue: Update only variables that are present (need to modify update function)  
+      // User wants to stop: Abort import
+      figma.variables.getLocalVariablesAsync("STRING").then(async (variables) => {
         for (const variable of variables) {
-
           if (variable.variableCollectionId === collectionId) {
             variableNamesOnFigma.push(variable.name)
-            if (importedVariableNames.indexOf(variable.name) === -1) {
-              figma.notify("One or more variables in the Figma collection, are missing in the CSV", { error: true, timeout: 5000 })
-              return
-            }
           }
         }
 
-        // update variables if no issues found
-        UpdateVariables(importedVariablesObject, collectionName, collectionId, modesIdsOnFigma)
+        const missingVariablesCount = CountMissingElements(importedVariableNames, variableNamesOnFigma)
+
+        if (missingVariablesCount > 0) {
+          // Show notification and wait for action
+          try {
+            await new Promise<void>((resolve, reject) => {
+              figma.notify(`${missingVariablesCount} variables on Figma are missing in the CSV`, {
+                error: false,
+                timeout: Infinity,
+                onDequeue: (reason) => {
+                  if (reason === "action_button_click") {
+                    resolve()
+                  } else {
+                    reject(new Error("Notification dismissed without a confirmation to continue"))
+                  }
+                },
+                button: {
+                  text: "Continue import",
+                  action: () => {
+                    resolve()
+                  }
+                }
+              })
+            })
+          }
+          catch (error) {
+            // Abort import
+            console.log(error)
+            figma.notify("Import aborted")
+            return
+          }
+        }
+
+        // Update variables if all checks have passed
+        UpdateVariables(importedVariablesObject, collectionName, collectionId, modesIdsOnFigma, importedModeIds)
       })
     })
   }
@@ -170,23 +234,26 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
 
 
-function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], collectionName: string, collectionId: string, modesIdsOnFigma: string[]) {
+function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], collectionName: string, collectionId: string, modesIdsOnFigma: string[], importedModeIds: string[]) {
   figma.notify("Updating variable values, hold on...")
   figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
-    // begin updating variables
+    // Begin updating variables
     for (const variable of variables) {
       if (variable.variableCollectionId === collectionId) {
         for (const importedVariable of importedVariablesObject) {
           if (importedVariable.name === variable.name) {
             for (const modeId of modesIdsOnFigma) {
-              try {
-                variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
-              } catch (error) {
-                console.error(error)
-                figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
-                figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
-                figma.notify(`${error}`, { error: true, timeout: 5000 })
-                return
+              // Update only those modes that are present in the CSV. Needed for cases where the user has bypassed modes soft check.
+              if (importedModeIds.includes(modeId)) {
+                try {
+                  variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
+                } catch (error) {
+                  console.error(error)
+                  figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
+                  figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
+                  figma.notify(`${error}`, { error: true, timeout: 5000 })
+                  return
+                }
               }
             }
           }
@@ -197,8 +264,14 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
   })
 }
 
-function CheckSubset(parentArray: string[], subsetArray: string[]) {
-  return subsetArray.every((el) => {
-    return parentArray.includes(el)
-  })
+function CountMissingElements(arrayToCheck: string[], referenceArray: string[]) {
+  let missingCount = 0
+
+  for (const element of referenceArray) {
+    if (!arrayToCheck.includes(element)) {
+      missingCount++
+    }
+  }
+
+  return missingCount
 }

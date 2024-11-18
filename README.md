@@ -3,6 +3,7 @@
 - Export to CSV
 - Import updated CSV back to Figma
 - Multiple variable modes supported
+- Multi-lingual support built-in
 
 https://www.figma.com/community/plugin/1355357264377995556
 
