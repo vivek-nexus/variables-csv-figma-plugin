@@ -149,7 +149,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
         // Show notification and wait for action
         try {
           await new Promise<void>((resolve, reject) => {
-            figma.notify(`${missingModeIdsCount} modes on Figma are missing in the CSV`, {
+            figma.notify(`${missingModeIdsCount} mode${missingModeIdsCount === 1 ? `` : `s`} on Figma ${missingModeIdsCount === 1 ? `is` : `are`} missing in the CSV`, {
               error: false,
               timeout: Infinity,
               onDequeue: (reason) => {
@@ -210,7 +210,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
           // Show notification and wait for action
           try {
             await new Promise<void>((resolve, reject) => {
-              figma.notify(`${missingVariablesCount} variables on Figma are missing in the CSV`, {
+              figma.notify(`${missingVariablesCount} variable${missingVariablesCount === 1 ? `` : `s`} on Figma ${missingVariablesCount === 1 ? `is` : `are`} missing in the CSV`, {
                 error: false,
                 timeout: Infinity,
                 onDequeue: (reason) => {
