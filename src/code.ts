@@ -14,9 +14,9 @@ type Collection = {
 
 type String2dArray = string[][]
 
-figma.showUI(__html__, { height: 600, width: 600 })
+figma.showUI(__html__, { height: 450, width: 500 })
 
-figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV: string }) => {
+figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?: string }) => {
   if (msg.type === "get-collections") {
     figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
       const collections: Collection[] = []
@@ -59,7 +59,13 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV:
           if (variable.variableCollectionId === collection.id) {
             const variableValuesByMode: string[] = []
             for (const modeId of modeIds) {
-              variableValuesByMode.push(variable.valuesByMode[modeId].toString())
+              // Detect Alias
+              if ((variable.valuesByMode[modeId] as VariableAlias).type === "VARIABLE_ALIAS") {
+                variableValuesByMode.push(`DO NOT EDIT (LINKED TO ANOTHER VARIABLE)`)
+              }
+              else {
+                variableValuesByMode.push(variable.valuesByMode[modeId].toString())
+              }
             }
             exportVariablesObject.push([variable.name, ...variableValuesByMode])
           }
@@ -78,7 +84,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV:
     })
   }
 
-  if (msg.type === "import") {
+  if ((msg.type === "import") && (msg.importedCSV)) {
     const parsedCSV: String2dArray = parse(msg.importedCSV)
 
     // HARD CHECK: Check if the CSV is empty
@@ -251,15 +257,18 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
             for (const modeId of modesIdsOnFigma) {
               // Update only those modes that are present in the CSV. Needed for cases where the user has bypassed modes soft check.
               if (importedModeIds.includes(modeId)) {
-                try {
-                  variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
-                }
-                catch (error) {
-                  console.error(error)
-                  figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
-                  figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
-                  figma.notify(`${error}`, { error: true, timeout: 5000 })
-                  return
+                // Skip if the value is an alias
+                if (importedVariable.valuesByMode[modeId] !== "DO NOT EDIT (LINKED TO ANOTHER VARIABLE)") {
+                  try {
+                    variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
+                  }
+                  catch (error) {
+                    console.error(error)
+                    figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
+                    figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })
+                    figma.notify(`${error}`, { error: true, timeout: 5000 })
+                    return
+                  }
                 }
               }
             }
