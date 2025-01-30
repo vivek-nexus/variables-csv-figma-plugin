@@ -7,16 +7,24 @@ type ImportedVariablesSchema = {
   }
 }
 
+type Collection = {
+  name: string,
+  id: string
+}
+
 type String2dArray = string[][]
 
 figma.showUI(__html__, { height: 600, width: 600 })
 
-figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV: string }) => {
+figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV: string }) => {
   if (msg.type === "get-collections") {
     figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
-      const collections = []
-      for (const collection of localCollections) {
-        collections.push(collection.name)
+      const collections: Collection[] = []
+      for (const localCollection of localCollections) {
+        collections.push({
+          name: localCollection.name,
+          id: localCollection.id
+        })
       }
       figma.ui.postMessage({
         type: "get-collections",
@@ -25,18 +33,16 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
     })
   }
 
-  if ((msg.type === "export") && msg.collectionName) {
-    const collectionName = msg.collectionName
+  if ((msg.type === "export") && msg.collection) {
+    const collection = msg.collection
     figma.variables.getLocalVariableCollectionsAsync().then((localCollections) => {
-      let collectionId = ""
       const modeIds: string[] = []
       const modeNames: string[] = []
 
       // Extract collection id and modeIds
-      for (const collection of localCollections) {
-        if (collection.name === collectionName) {
-          collectionId = collection.id
-          for (const mode of collection.modes) {
+      for (const localCollection of localCollections) {
+        if (localCollection.id === collection.id) {
+          for (const mode of localCollection.modes) {
             modeIds.push(mode.modeId)
             modeNames.push(mode.name)
           }
@@ -45,12 +51,12 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
       figma.variables.getLocalVariablesAsync("STRING").then((variables) => {
         // Prepare and export variable object
-        const headers = [collectionName, ...modeNames]
+        const headers = [collection.name, ...modeNames]
         const exportVariablesObject: String2dArray = []
         exportVariablesObject.push(headers)
 
         for (const variable of variables) {
-          if (variable.variableCollectionId === collectionId) {
+          if (variable.variableCollectionId === collection.id) {
             const variableValuesByMode: string[] = []
             for (const modeId of modeIds) {
               variableValuesByMode.push(variable.valuesByMode[modeId].toString())
@@ -64,7 +70,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
         figma.ui.postMessage({
           type: "export",
           body: {
-            collectionName: collectionName,
+            collection: collection,
             csvData: stringify(exportVariablesObject)
           }
         })
@@ -98,7 +104,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
 
     figma.variables.getLocalVariableCollectionsAsync().then(async (localCollections) => {
-      const modesOnFigma: { modeId: string; name: string; }[] = []
+      const modesOnFigma: { modeId: string; name: string }[] = []
       const modesIdsOnFigma: string[] = []
 
       let collectionId = ""
@@ -183,7 +189,7 @@ figma.ui.onmessage = (msg: { type: string, collectionName?: string, importedCSV:
 
       // SOFT CHECK: Check if required variables are available
       // Prompt if some variables are missing 
-      // User wants to continue: Update only variables that are present (need to modify update function)  
+      // User wants to continue: Update only variables that are present  
       // User wants to stop: Abort import
       figma.variables.getLocalVariablesAsync("STRING").then(async (variables) => {
         for (const variable of variables) {
@@ -247,7 +253,8 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
               if (importedModeIds.includes(modeId)) {
                 try {
                   variable.setValueForMode(modeId, importedVariable.valuesByMode[modeId])
-                } catch (error) {
+                }
+                catch (error) {
                   console.error(error)
                   figma.notify(`Could not update ${variable.name}`, { error: true, timeout: 5000 })
                   figma.notify(`Import aborted. Please check the variable value in the CSV.`, { error: true, timeout: 5000 })

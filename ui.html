@@ -236,7 +236,10 @@
 
 
 <script>
-  let chosenCollection = ""
+  let chosenCollection = {
+    name: "",
+    id: ""
+  }
   parent.postMessage({ pluginMessage: { type: "get-collections" } }, '*')
 
   window.addEventListener("message", (event) => {
@@ -244,17 +247,26 @@
     if (event.data.pluginMessage.type === "get-collections") {
       const collections = event.data.pluginMessage.body
 
+      if (CheckDuplicateCollections(collections)) {
+        alert("Some collections have the same name. Please rename them and re-run the plugin.")
+      }
+
       PopulateDropdown(collections)
 
-      document.querySelector("#dropdown").addEventListener("change", function (event) {
-        const selectedValue = this.value
-        chosenCollection = selectedValue
+      const dropdown = document.querySelector("#dropdown")
+
+      dropdown.addEventListener("change", function (event) {
+        const selectedOption = dropdown.options[dropdown.selectedIndex];
+        chosenCollection = {
+          name: selectedOption.getAttribute("data-name"),
+          id: selectedOption.value
+        }
       });
     }
 
     // consume CSV to export
     if (event.data.pluginMessage.type === "export") {
-      const filename = event.data.pluginMessage.body.collectionName
+      const filename = event.data.pluginMessage.body.collection.name
       const csvData = event.data.pluginMessage.body.csvData
       DownloadCSV(csvData, filename)
     }
@@ -262,7 +274,8 @@
 
   // request data to export
   document.querySelector("#export").addEventListener("click", () => {
-    parent.postMessage({ pluginMessage: { type: "export", collectionName: chosenCollection } }, '*')
+    console.log(chosenCollection)
+    parent.postMessage({ pluginMessage: { type: "export", collection: chosenCollection } }, '*')
   })
 
   // Add event listener to file input
@@ -325,11 +338,24 @@
     // Add options from the array
     collections.forEach((item) => {
       const option = document.createElement("option");
-      option.text = item;
-      option.value = item;
+      option.setAttribute("data-name", item.name);
+      option.value = item.id;
+      option.text = item.name;
       dropdown.appendChild(option);
     });
 
-    chosenCollection = dropdown.value
+    chosenCollection = {
+      name: collections[0].name,
+      id: collections[0].id
+    }
+  }
+
+  function CheckDuplicateCollections(collections) {
+    const collectionNames = []
+    for (const collection of collections) {
+      collectionNames.push(collection.name)
+    }
+
+    return (collectionNames.length !== (new Set(collectionNames)).size)
   }
 </script>
