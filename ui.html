@@ -160,12 +160,12 @@
       const dropdown = document.querySelector("#dropdown")
 
       dropdown.addEventListener("change", function (event) {
-        const selectedOption = dropdown.options[dropdown.selectedIndex];
+        const selectedOption = dropdown.options[dropdown.selectedIndex]
         chosenCollection = {
           name: selectedOption.getAttribute("data-name"),
           id: selectedOption.value
         }
-      });
+      })
     }
 
     // consume CSV to export
@@ -192,7 +192,7 @@
         }
       }, '*')
     })
-  });
+  })
 
   // FUNCTIONS
   // Function to download csv string as csv file 
@@ -234,19 +234,19 @@
 
   // Function to populate the dropdown with options
   function PopulateDropdown(collections) {
-    const dropdown = document.getElementById("dropdown");
+    const dropdown = document.getElementById("dropdown")
 
     // Clear existing options
-    dropdown.innerHTML = '';
+    dropdown.innerHTML = ''
 
     // Add options from the array
     collections.forEach((item) => {
-      const option = document.createElement("option");
-      option.setAttribute("data-name", item.name);
-      option.value = item.id;
-      option.text = item.name;
-      dropdown.appendChild(option);
-    });
+      const option = document.createElement("option")
+      option.setAttribute("data-name", item.name)
+      option.value = item.id
+      option.text = item.name
+      dropdown.appendChild(option)
+    })
 
     chosenCollection = {
       name: collections[0].name,
