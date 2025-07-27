@@ -261,7 +261,7 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
       }
     }
   }
-  figma.notify(`Successfully updated existing variable values of ${collection.name} from the CSV`, { timeout: 2000 })
+  figma.notify(`Updated existing variable values of ${collection.name} from the CSV`, { timeout: 2000 })
 }
 
 
@@ -284,13 +284,13 @@ function CreateNewVariables(importedVariablesObject: ImportedVariablesSchema[], 
     }
     catch (error) {
       console.error(error)
-      figma.notify(`Could not create ${newVariableData.name}`, { error: true, timeout: 5000 })
-      figma.notify(`Import aborted. Please check the variable and its values CSV.`, { error: true, timeout: 5000 })
+      figma.notify(`Could not create variable ${newVariableData.name}`, { error: true, timeout: 5000 })
+      figma.notify(`Import aborted. Please check the variable name and its values in the CSV.`, { error: true, timeout: 5000 })
       figma.notify(`${error}`, { error: true, timeout: 5000 })
       return
     }
   }
-  figma.notify(`Successfully created ${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} in the collection`, { timeout: 2000 })
+  figma.notify(`Created ${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} in the collection`, { timeout: 2000 })
 }
 
 
