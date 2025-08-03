@@ -93,13 +93,14 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
       return
     }
 
-    // HARD CHECK: Check if there is at least one variable row, apart from the header row
-    if (parsedCSV.length <= 1) {
-      figma.notify("No variables found in the CSV", { error: true, timeout: 5000 })
+    // HARD CHECK: Check if there is no other row, apart from the header row
+    if (parsedCSV.length === 1) {
+      figma.notify("No variables found in the CSV (first row is considered as the header)", { error: true, timeout: 5000 })
       return
     }
 
     console.log(parsedCSV)
+
     const headers = parsedCSV[0]
     const collectionName = headers[0]
     const importedModeNames: string[] = headers.slice(1)
@@ -152,7 +153,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
       const missingModeIdsCount = CountMissingElements(importedModeIds, modesIdsOnFigma)
       if (missingModeIdsCount > 0) {
         // Show notification and wait for action
-        const missingModesSoftCheck = await NotifyAndAwaitAction(`${missingModeIdsCount} mode${missingModeIdsCount === 1 ? `` : `s`} on Figma ${missingModeIdsCount === 1 ? `is` : `are`} missing in the CSV`)
+        const missingModesSoftCheck = await NotifyAndAwaitAction(`${missingModeIdsCount} mode${missingModeIdsCount === 1 ? `` : `s`} on Figma ${missingModeIdsCount === 1 ? `is` : `are`} missing in the CSV`, "Continue anyway")
 
         if (!missingModesSoftCheck) {
           return
@@ -180,31 +181,35 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
       console.log(importedVariablesObject)
 
 
-      // SOFT CHECK: Check if required variables are available
-      // Prompt if some variables are missing 
-      // User wants to continue: Update only variables that are present  
-      // User wants to stop: Abort import
+      // Collect the collection's variable names on Figma
       figma.variables.getLocalVariablesAsync("STRING").then(async (variables) => {
-        // Collect variable names on Figma for missing variables soft check and new variables soft check
         for (const variable of variables) {
           if (variable.variableCollectionId === collection.id) {
             variableNamesOnFigma.push(variable.name)
           }
         }
 
-        const missingVariablesCount = CountMissingElements(importedVariableNames, variableNamesOnFigma)
+        // Update only if there are existing variables in the collection
+        if (variableNamesOnFigma.length > 0) {
+          // SOFT CHECK: Check if required variables are available
+          // Prompt if some variables are missing 
+          // User wants to continue: Update only variables that are present  
+          // User wants to stop: Abort import
+          const missingVariablesCount = CountMissingElements(importedVariableNames, variableNamesOnFigma)
 
-        if (missingVariablesCount > 0) {
-          // Show notification and wait for action
-          const missingVariablesSoftCheck = await NotifyAndAwaitAction(`${missingVariablesCount} variable${missingVariablesCount === 1 ? `` : `s`} on Figma ${missingVariablesCount === 1 ? `is` : `are`} missing in the CSV`)
+          if (missingVariablesCount > 0) {
+            const variablesToUpdateCount = variableNamesOnFigma.length - missingVariablesCount
+            // Show notification and wait for action
+            const missingVariablesSoftCheck = await NotifyAndAwaitAction(`Only ${variablesToUpdateCount} of ${variableNamesOnFigma.length} variable${variablesToUpdateCount === 1 ? `` : `s`} on Figma, will be updated from the CSV.`, "Continue")
 
-          if (!missingVariablesSoftCheck) {
-            return
+            if (!missingVariablesSoftCheck) {
+              return
+            }
           }
-        }
 
-        // Update existing variables if missing variables soft check is passed
-        UpdateVariables(importedVariablesObject, collection, variables, modesIdsOnFigma, importedModeIds)
+          // Update existing variables if missing variables soft check is passed
+          UpdateVariables(importedVariablesObject, collection, variables, modesIdsOnFigma, importedModeIds)
+        }
 
 
         // SOFT CHECK: Check if there are new variables in the CSV
@@ -215,7 +220,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
 
         if (newVariableIndexes.length > 0) {
           // Show notification and wait for action
-          const newVariablesSoftCheck = await NotifyAndAwaitAction(`${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} found in the CSV. These variables will be created in the collection.`)
+          const newVariablesSoftCheck = await NotifyAndAwaitAction(`${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} found in the CSV. Create these on Figma?`, "Yes")
 
           if (!newVariablesSoftCheck) {
             return
@@ -232,7 +237,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
 
 
 function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], collection: VariableCollection, variables: Variable[], modesIdsOnFigma: string[], importedModeIds: string[]) {
-  figma.notify("Updating existing variable values, hold on...")
+  figma.notify("Updating variable values, hold on...")
   // Begin updating variables
   for (const variable of variables) {
     if (variable.variableCollectionId === collection.id) {
@@ -261,7 +266,7 @@ function UpdateVariables(importedVariablesObject: ImportedVariablesSchema[], col
       }
     }
   }
-  figma.notify(`Updated existing variable values of ${collection.name} from the CSV`, { timeout: 2000 })
+  figma.notify(`Updated variables of ${collection.name}`, { timeout: 2000 })
 }
 
 
@@ -290,7 +295,7 @@ function CreateNewVariables(importedVariablesObject: ImportedVariablesSchema[], 
       return
     }
   }
-  figma.notify(`Created ${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} in the collection`, { timeout: 2000 })
+  figma.notify(`Created ${newVariableIndexes.length} new variable${newVariableIndexes.length === 1 ? `` : `s`} on Figma`, { timeout: 2000 })
 }
 
 
@@ -320,7 +325,7 @@ function GetNewVariableIndexes(importedVariableNames: string[], variableNamesOnF
 }
 
 
-function NotifyAndAwaitAction(message: string): Promise<boolean> {
+function NotifyAndAwaitAction(message: string, buttonText: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     new Promise<boolean>((resolve, reject) => {
       figma.notify(message, {
@@ -335,7 +340,7 @@ function NotifyAndAwaitAction(message: string): Promise<boolean> {
           }
         },
         button: {
-          text: "Continue import",
+          text: buttonText,
           action: () => {
             resolve(true) // User clicked "Continue import"
           }

@@ -182,8 +182,11 @@
     parent.postMessage({ pluginMessage: { type: "export", collection: chosenCollection } }, '*')
   })
 
-  // Add event listener to file input
-  document.querySelector("#csvFileInput").addEventListener("change", (event) => {
+
+  // file input
+  const fileInput = document.querySelector("#csvFileInput")
+  // add event listener to file input
+  fileInput.addEventListener("change", (event) => {
     ReadCSV(event).then((importedCSV) => {
       parent.postMessage({
         pluginMessage: {
@@ -193,6 +196,12 @@
       }, '*')
     })
   })
+  // If same file is selected again, the change event would not trigger. So forcing a file name reset on click.
+  fileInput.addEventListener("click", (event) => {
+    event.target.value = ""
+  })
+
+
 
   // FUNCTIONS
   // Function to download csv string as csv file 
