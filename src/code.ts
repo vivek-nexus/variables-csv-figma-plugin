@@ -200,7 +200,7 @@ figma.ui.onmessage = (msg: { type: string, collection?: Collection, importedCSV?
           if (missingVariablesCount > 0) {
             const variablesToUpdateCount = variableNamesOnFigma.length - missingVariablesCount
             // Show notification and wait for action
-            const missingVariablesSoftCheck = await NotifyAndAwaitAction(`Only ${variablesToUpdateCount} of ${variableNamesOnFigma.length} variable${variablesToUpdateCount === 1 ? `` : `s`} on Figma, will be updated from the CSV.`, "Continue")
+            const missingVariablesSoftCheck = await NotifyAndAwaitAction(`${variablesToUpdateCount} of ${variableNamesOnFigma.length} variable${variablesToUpdateCount === 1 ? `` : `s`} on Figma, will be updated from the CSV.`, "Continue")
 
             if (!missingVariablesSoftCheck) {
               return
